@@ -1,0 +1,229 @@
+#!/bin/sh 
+
+commport="$(uci -q get modeminfo.settings.comm)"
+
+[ -z "$commport" ] && {
+	cat > /tmp/modeminfo <<'EOF'
+Modem: N/A
+IMEI: N/A
+ISP: N/A
+Revision: N/A
+Protocol: unknown
+Temperature: N/A
+Network: Unknown Network
+CSQ: No Signal
+Signal Strength: No Signal
+RSSI: No Signal
+LTE RSRQ: No Signal
+LTE RSRP: No Signal
+LTE SINR: No Signal
+LTE MCC: No Signal
+LTE MNC: No Signal
+LTE Cell ID: No Signal
+LTE Cell ID (Dec): No Signal
+NR5G-NSA SINR: No Signal
+NR5G-NSA RSRQ: No Signal
+NR5G-NSA RSRP: No Signal
+NR5G-NSA MCC: No Signal
+NR5G-NSA MNC: No Signal
+NR5G-NSA Cell ID: No Signal
+NR5G-NSA Cell ID (Dec): No Signal
+NR5G-SA RSRP: No Signal
+NR5G-SA RSRQ: No Signal
+NR5G-SA SINR: No Signal
+NR5G-SA MCC: No Signal
+NR5G-SA MNC: No Signal
+NR5G-SA Cell ID: No Signal
+NR5G-SA Cell ID (Dec): No Signal
+EOF
+	exit 0
+}
+
+clean_val() {
+	echo "$1" | tr -d '\r' | xargs
+}
+
+hex_to_dec() {
+	local hex="$1"
+
+	case "$hex" in
+		""|"No Signal")
+			echo "No Signal"
+			return
+		;;
+	esac
+
+	printf "%d\n" "0x$hex" 2>/dev/null || echo "No Signal"
+}
+
+default_no_signal() {
+	[ -z "$1" ] && echo "No Signal" || echo "$1"
+}
+
+signal="$(sms_tool -d "$commport" at 'at+csq;+qnwinfo;+qcainfo;+qeng="servingcell";+qspn' 2>/dev/null | tr -d '\r')"
+usbd="$(cat /sys/kernel/debug/usb/devices 2>/dev/null)"
+
+if echo "$usbd" | grep -q "Driver=qmi_wwan_q"; then
+	protocol="quectel-cm"
+elif echo "$usbd" | grep -q "Driver=qmi_wwan"; then
+	protocol="qmi"
+elif echo "$usbd" | grep -q "Driver=cdc_mbim"; then
+	protocol="mbim"
+elif echo "$usbd" | grep -q "Driver=cdc_ether"; then
+	protocol="ecm"
+else
+	protocol="unknown"
+fi
+
+network="$(echo "$signal" | grep 'QENG' | grep -oE 'LTE|NR5G-NSA|NR5G-SA' | tr '\n' ' ' | sed 's/[[:space:]]*$//')"
+[ -z "$network" ] && network="Unknown Network"
+
+modem="$(sms_tool -d "$commport" at "ati" 2>/dev/null | sed -n '2{h};3{H;x;s/\n/ /p}' | tr -d '\r\n')"
+[ -z "$modem" ] && modem="N/A"
+
+revision="$(sms_tool -d "$commport" at "at+qgmr" 2>/dev/null | sed '1d' | tr -d '\r' | head -n1 | xargs)"
+[ -z "$revision" ] && revision="N/A"
+
+isp="$(echo "$signal" | grep 'QSPN:' | awk -F\" '{print $2}' | tr -d '\r\n')"
+[ -z "$isp" ] && isp="N/A"
+
+temperature="$(sms_tool -d "$commport" at "at+qtemp" 2>/dev/null | awk -F[,:] '/^\+QTEMP/{print $3}' | sort -r | head -n1 | xargs)"
+[ -z "$temperature" ] && temperature="N/A"
+
+imei="$(sms_tool -d "$commport" at "at+cgsn" 2>/dev/null | sed '1d' | tr -d '\r' | head -n1 | xargs)"
+[ -z "$imei" ] && imei="N/A"
+
+csq="$(echo "$signal" | grep 'csq:' | awk -F'[ ,:]' '{print $3}' | head -n1 | xargs)"
+csqper="$(echo "$signal" | grep 'csq:' | awk -F, '{print $2}' | head -n1 | xargs)"
+
+[ -z "$csq" ] && csq="No Signal"
+[ -z "$csqper" ] && csqper="No Signal"
+
+rssi_lte="$(clean_val "$(echo "$signal" | grep 'QCAINFO: "PCC"' | awk -F, '{print $9}' | head -n1)")"
+rsrq_lte="$(clean_val "$(echo "$signal" | grep 'QCAINFO: "PCC"' | awk -F, '{print $8}' | head -n1)")"
+rsrp_lte="$(clean_val "$(echo "$signal" | grep 'QCAINFO: "PCC"' | awk -F, '{print $7}' | head -n1)")"
+sinr_lte="$(clean_val "$(echo "$signal" | grep 'QCAINFO: "PCC"' | awk -F, '{print $10}' | head -n1)")"
+
+if echo "$signal" | grep -q 'QENG: "servingcell","NOCONN","LTE"'; then
+	mcc_lte="$(clean_val "$(echo "$signal" | grep 'QENG: "servingcell","NOCONN","LTE"' | awk -F, '{print $5}' | head -n1)")"
+	mnc_lte="$(clean_val "$(echo "$signal" | grep 'QENG: "servingcell","NOCONN","LTE"' | awk -F, '{print $6}' | head -n1)")"
+	cell_lte="$(clean_val "$(echo "$signal" | grep 'QENG: "servingcell","NOCONN","LTE"' | awk -F, '{print "b"$7}' | head -n1)")"
+else
+	mcc_lte="$(clean_val "$(echo "$signal" | grep 'QENG: "LTE"' | awk -F, '{print $3}' | head -n1)")"
+	mnc_lte="$(clean_val "$(echo "$signal" | grep 'QENG: "LTE"' | awk -F, '{print $4}' | head -n1)")"
+	cell_lte="$(clean_val "$(echo "$signal" | grep 'QENG: "LTE"' | awk -F, '{print $5}' | head -n1)")"
+fi
+
+rsrq_5g="$(clean_val "$(echo "$signal" | grep 'QENG: "NR5G-NSA"' | awk -F, '{print $7}' | head -n1)")"
+rsrp_5g="$(clean_val "$(echo "$signal" | grep 'QENG: "NR5G-NSA"' | awk -F, '{print $5}' | head -n1)")"
+sinr_5g="$(clean_val "$(echo "$signal" | grep 'QENG: "NR5G-NSA"' | awk -F, '{print $6}' | head -n1)")"
+mcc_5g="$(clean_val "$(echo "$signal" | grep 'QENG: "NR5G-NSA"' | awk -F, '{print $2}' | head -n1)")"
+mnc_5g="$(clean_val "$(echo "$signal" | grep 'QENG: "NR5G-NSA"' | awk -F, '{print $3}' | head -n1)")"
+cell_5g_nsa="$(clean_val "$(echo "$signal" | grep 'QENG: "NR5G-NSA"' | awk -F, '{print $8}' | head -n1)")"
+
+rsrp_5g_sa="$(clean_val "$(echo "$signal" | grep 'QENG: "servingcell".*NR5G-SA' | awk -F, '{print $13}' | head -n1)")"
+rsrq_5g_sa="$(clean_val "$(echo "$signal" | grep 'QENG: "servingcell".*NR5G-SA' | awk -F, '{print $14}' | head -n1)")"
+sinr_5g_sa="$(clean_val "$(echo "$signal" | grep 'QENG: "servingcell".*NR5G-SA' | awk -F, '{print $15}' | head -n1)")"
+mcc_5g_sa="$(clean_val "$(echo "$signal" | grep 'QENG: "servingcell".*NR5G-SA' | awk -F, '{print $5}' | head -n1)")"
+mnc_5g_sa="$(clean_val "$(echo "$signal" | grep 'QENG: "servingcell".*NR5G-SA' | awk -F, '{print $6}' | head -n1)")"
+cell_5g_sa="$(clean_val "$(echo "$signal" | grep 'QENG: "servingcell".*NR5G-SA' | awk -F, '{print $7}' | head -n1)")"
+
+rssi_lte="$(default_no_signal "$rssi_lte")"
+rsrq_lte="$(default_no_signal "$rsrq_lte")"
+rsrp_lte="$(default_no_signal "$rsrp_lte")"
+sinr_lte="$(default_no_signal "$sinr_lte")"
+mcc_lte="$(default_no_signal "$mcc_lte")"
+mnc_lte="$(default_no_signal "$mnc_lte")"
+cell_lte="$(default_no_signal "$cell_lte")"
+
+rsrq_5g="$(default_no_signal "$rsrq_5g")"
+rsrp_5g="$(default_no_signal "$rsrp_5g")"
+sinr_5g="$(default_no_signal "$sinr_5g")"
+mcc_5g="$(default_no_signal "$mcc_5g")"
+mnc_5g="$(default_no_signal "$mnc_5g")"
+cell_5g_nsa="$(default_no_signal "$cell_5g_nsa")"
+
+rsrp_5g_sa="$(default_no_signal "$rsrp_5g_sa")"
+rsrq_5g_sa="$(default_no_signal "$rsrq_5g_sa")"
+sinr_5g_sa="$(default_no_signal "$sinr_5g_sa")"
+mcc_5g_sa="$(default_no_signal "$mcc_5g_sa")"
+mnc_5g_sa="$(default_no_signal "$mnc_5g_sa")"
+cell_5g_sa="$(default_no_signal "$cell_5g_sa")"
+
+cell_lte_dec="$(hex_to_dec "$cell_lte")"
+cell_5g_nsa_dec="$(hex_to_dec "$cell_5g_nsa")"
+cell_5g_sa_dec="$(hex_to_dec "$cell_5g_sa")"
+
+{
+	echo "Modem: $modem"
+	echo "IMEI: $imei"
+	echo "ISP: $isp"
+	echo "Revision: $revision"
+	echo "Protocol: $protocol"
+	echo "Temperature: $temperature °C"
+	echo "Network: $network"
+	echo "CSQ: $csq"
+	echo "Signal Strength: $csqper"
+	echo "RSSI: $rssi_lte"
+	echo "LTE RSRQ: $rsrq_lte"
+	echo "LTE RSRP: $rsrp_lte"
+	echo "LTE SINR: $sinr_lte"
+	echo "LTE MCC: $mcc_lte"
+	echo "LTE MNC: $mnc_lte"
+	echo "LTE Cell ID: $cell_lte"
+	echo "LTE Cell ID (Dec): $cell_lte_dec"
+	echo "NR5G-NSA SINR: $sinr_5g"
+	echo "NR5G-NSA RSRQ: $rsrq_5g"
+	echo "NR5G-NSA RSRP: $rsrp_5g"
+	echo "NR5G-NSA MCC: $mcc_5g"
+	echo "NR5G-NSA MNC: $mnc_5g"
+	echo "NR5G-NSA Cell ID: $cell_5g_nsa"
+	echo "NR5G-NSA Cell ID (Dec): $cell_5g_nsa_dec"
+	echo "NR5G-SA RSRP: $rsrp_5g_sa"
+	echo "NR5G-SA RSRQ: $rsrq_5g_sa"
+	echo "NR5G-SA SINR: $sinr_5g_sa"
+	echo "NR5G-SA MCC: $mcc_5g_sa"
+	echo "NR5G-SA MNC: $mnc_5g_sa"
+	echo "NR5G-SA Cell ID: $cell_5g_sa"
+	echo "NR5G-SA Cell ID (Dec): $cell_5g_sa_dec"
+} > /tmp/modeminfo
+
+parse_carrier() {
+	line="$1"
+	carrier_type="$(echo "$line" | awk -F'[,:]' '{gsub(/"/, "", $5); print $5}')"
+	earfcn="$(echo "$line" | awk -F'[,:]' '{gsub(/ /, "", $3); print $3}')"
+
+	case "$carrier_type" in
+		LTE*)
+			band="$(echo "$line" | awk -F'[,:]' '{print $7}')"
+			formatted_type="$(echo "$carrier_type" | sed 's/BAND/Band/')"
+		;;
+		NR5G*)
+			band="$(echo "$line" | awk -F'[,:]' '{print $NF}')"
+			formatted_type="$(echo "$carrier_type" | sed 's/BAND/Band/')"
+		;;
+		*)
+			band="UNKNOWN"
+			formatted_type="$carrier_type"
+		;;
+	esac
+
+	echo "$formatted_type,$band,$earfcn"
+}
+
+pcc_line="$(echo "$signal" | grep -m 1 '^+QCAINFO: "PCC"')"
+if [ -n "$pcc_line" ]; then
+	IFS=, read type band earfcn <<EOF
+$(parse_carrier "$pcc_line")
+EOF
+	echo "PCC: $type, $band, $earfcn" >> /tmp/modeminfo
+fi
+
+i=1
+echo "$signal" | grep '^+QCAINFO: "SCC"' | while IFS= read -r scc_line; do
+	IFS=, read type band earfcn <<EOF
+$(parse_carrier "$scc_line")
+EOF
+	printf "SCC%d: %s, %s, %s\n" "$i" "$type" "$band" "$earfcn" >> /tmp/modeminfo
+	i=$((i + 1))
+done

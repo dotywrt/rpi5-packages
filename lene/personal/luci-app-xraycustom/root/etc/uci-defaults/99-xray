@@ -1,0 +1,4 @@
+#!/bin/sh
+
+chmod +x /usr/bin/xraycustom
+ls -l /usr/bin/xraycustom

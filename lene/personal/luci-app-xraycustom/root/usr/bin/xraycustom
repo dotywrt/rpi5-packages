@@ -1,0 +1,355 @@
+#!/bin/sh
+
+set -eu
+
+PKG="xraycustom"
+SEC="main"
+
+uci_get() {
+	uci -q get "$PKG.$SEC.$1" 2>/dev/null || true
+}
+
+json_escape() {
+	printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\r//g; :a;N;$!ba; s/\n/\\n/g'
+}
+
+fetch_url() {
+	local url="$1"
+
+	if command -v uclient-fetch >/dev/null 2>&1; then
+		uclient-fetch -qO- "$url" 2>/dev/null && return 0
+	fi
+
+	if command -v wget >/dev/null 2>&1; then
+		wget -qO- "$url" 2>/dev/null && return 0
+	fi
+
+	return 1
+}
+
+download_file() {
+	local url="$1"
+	local out="$2"
+
+	if command -v uclient-fetch >/dev/null 2>&1; then
+		uclient-fetch -qO "$out" "$url" 2>/dev/null && return 0
+	fi
+
+	if command -v wget >/dev/null 2>&1; then
+		wget -qO "$out" "$url" 2>/dev/null && return 0
+	fi
+
+	return 1
+}
+
+latest_official_raw() {
+	local body tag
+
+	body="$(fetch_url "https://api.github.com/repos/XTLS/Xray-core/releases/latest" || true)"
+
+	if [ -n "$body" ]; then
+		tag="$(printf '%s' "$body" \
+			| sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
+			| head -n1)"
+		if [ -n "$tag" ]; then
+			printf '%s\n' "$tag"
+			return 0
+		fi
+	fi
+
+	body="$(fetch_url "https://github.com/XTLS/Xray-core/releases/latest" || true)"
+
+	if [ -n "$body" ]; then
+		tag="$(printf '%s' "$body" \
+			| sed -n 's#.*releases/tag/\(v[0-9][^"]*\).*#\1#p' \
+			| head -n1)"
+		if [ -n "$tag" ]; then
+			printf '%s\n' "$tag"
+			return 0
+		fi
+	fi
+
+	return 1
+}
+
+latest_official_json() {
+	local tag
+
+	tag="$(latest_official_raw || true)"
+
+	if [ -n "$tag" ]; then
+		printf '{"ok":true,"latest_official":"%s"}\n' "$(json_escape "$tag")"
+	else
+		printf '{"ok":false,"latest_official":"-","error":"failed to fetch official latest"}\n'
+		return 1
+	fi
+}
+
+fetch_versions_json() {
+	local list_url tmp versions
+
+	list_url="$(uci_get list_url)"
+	[ -n "$list_url" ] || list_url="https://raw.githubusercontent.com/AW1Kdev/xray/main/list.json"
+
+	tmp="$(mktemp)"
+
+	if ! download_file "$list_url" "$tmp"; then
+		rm -f "$tmp"
+		printf '{"ok":false,"error":"failed to fetch list","url":"%s"}\n' "$(json_escape "$list_url")"
+		return 1
+	fi
+
+	if [ ! -s "$tmp" ]; then
+		rm -f "$tmp"
+		echo '{"ok":false,"error":"empty list file"}'
+		return 1
+	fi
+
+	versions="$(sed -n '/"versions"[[:space:]]*:/,/]/p' "$tmp" \
+		| tr '\n' ' ' \
+		| sed 's/.*"versions"[[:space:]]*:[[:space:]]*\[//; s/\].*//' \
+		| tr ',' '\n' \
+		| sed 's/"//g; s/^[[:space:]]*//; s/[[:space:]]*$//' \
+		| sed '/^$/d')"
+
+	rm -f "$tmp"
+
+	printf '['
+	local first=1 v
+	for v in $versions; do
+		[ $first -eq 1 ] || printf ','
+		first=0
+		printf '"%s"' "$(json_escape "$v")"
+	done
+	printf ']\n'
+}
+
+status_json() {
+	local bin cur base_url list_url installed_version latest_official version_raw
+
+	bin="$(uci_get binary_path)"
+	base_url="$(uci_get base_url)"
+	list_url="$(uci_get list_url)"
+	installed_version="$(uci -q get "$PKG.$SEC.installed_version" 2>/dev/null || true)"
+
+	[ -n "$bin" ] || bin="/usr/bin/xray"
+	[ -n "$base_url" ] || base_url="https://raw.githubusercontent.com/AW1Kdev/xray/main"
+	[ -n "$list_url" ] || list_url="https://raw.githubusercontent.com/AW1Kdev/xray/main/list.json"
+
+	cur=""
+	version_raw=""
+	if [ -x "$bin" ]; then
+		version_raw="$("$bin" version 2>/dev/null || true)"
+		cur="$(printf '%s\n' "$version_raw" | awk 'NR==1 {print $2}')"
+	fi
+
+	latest_official="$(latest_official_raw || true)"
+
+	printf '{'
+	printf '"binary_path":"%s",' "$(json_escape "$bin")"
+	printf '"current_version":"%s",' "$(json_escape "$cur")"
+	printf '"installed_version":"%s",' "$(json_escape "$installed_version")"
+	printf '"base_url":"%s",' "$(json_escape "$base_url")"
+	printf '"list_url":"%s",' "$(json_escape "$list_url")"
+	printf '"latest_official":"%s",' "$(json_escape "$latest_official")"
+	printf '"version_raw":"%s"' "$(json_escape "$version_raw")"
+	printf '}\n'
+}
+
+do_replace_binary() {
+	local src="$1"
+	local ver="$2"
+	local bin backup restart service
+
+	bin="$(uci_get binary_path)"
+	backup="$(uci_get backup)"
+	restart="$(uci_get restart_service)"
+	service="$(uci_get service_name)"
+
+	[ -n "$bin" ] || bin="/usr/bin/xray"
+	[ -n "$service" ] || service="xray"
+
+	if [ "$backup" = "1" ] 2>/dev/null && [ -f "$bin" ]; then
+		cp -f "$bin" "${bin}.bak"
+	fi
+
+	rm -f "$bin"
+	cp -f "$src" "$bin"
+	chmod 0755 "$bin"
+
+	uci -q set "$PKG.$SEC.installed_version=$ver"
+	uci -q commit "$PKG"
+
+	if [ "${restart:-0}" = "1" ] && [ -x "/etc/init.d/$service" ]; then
+		/etc/init.d/"$service" restart >/dev/null 2>&1 || true
+	fi
+
+	printf '{"ok":true,"installed_version":"%s","path":"%s"}\n' \
+		"$(json_escape "$ver")" \
+		"$(json_escape "$bin")"
+}
+
+install_version() {
+	local ver base_url enabled tmp url
+
+	ver="${1:-}"
+	enabled="$(uci_get enabled)"
+
+	[ "$enabled" = "1" ] || {
+		echo '{"ok":false,"error":"xraycustom disabled"}'
+		exit 1
+	}
+
+	[ -n "$ver" ] || {
+		echo '{"ok":false,"error":"missing version"}'
+		exit 1
+	}
+
+	base_url="$(uci_get base_url)"
+	[ -n "$base_url" ] || base_url="https://raw.githubusercontent.com/AW1Kdev/xray/main"
+
+	tmp="$(mktemp)"
+	url="${base_url}/${ver}/xray"
+
+	if ! download_file "$url" "$tmp"; then
+		rm -f "$tmp"
+		printf '{"ok":false,"error":"download failed","url":"%s"}\n' "$(json_escape "$url")"
+		exit 1
+	fi
+
+	if [ ! -s "$tmp" ]; then
+		rm -f "$tmp"
+		echo '{"ok":false,"error":"downloaded file is empty"}'
+		exit 1
+	fi
+
+	do_replace_binary "$tmp" "$ver"
+	rm -f "$tmp"
+}
+
+install_official_latest() {
+	local enabled tag arch gh_arch tmp url
+
+	enabled="$(uci_get enabled)"
+
+	[ "$enabled" = "1" ] || {
+		echo '{"ok":false,"error":"xraycustom disabled"}'
+		exit 1
+	}
+
+	tag="$(latest_official_raw || true)"
+	[ -n "$tag" ] || {
+		echo '{"ok":false,"error":"failed to detect official latest"}'
+		exit 1
+	}
+
+	arch="$(uname -m)"
+	case "$arch" in
+		aarch64|arm64)
+			gh_arch="arm64-v8a"
+		;;
+		x86_64|amd64)
+			gh_arch="64"
+		;;
+		armv7l|armv7|armhf)
+			gh_arch="arm32-v7a"
+		;;
+		*)
+			printf '{"ok":false,"error":"unsupported architecture: %s"}\n' "$(json_escape "$arch")"
+			exit 1
+		;;
+	esac
+
+	tmp="$(mktemp)"
+	url="https://github.com/XTLS/Xray-core/releases/download/${tag}/Xray-linux-${gh_arch}.zip"
+
+	if ! download_file "$url" "$tmp.zip"; then
+		rm -f "$tmp" "$tmp.zip"
+		printf '{"ok":false,"error":"official download failed","url":"%s"}\n' "$(json_escape "$url")"
+		exit 1
+	fi
+
+	if [ ! -s "$tmp.zip" ]; then
+		rm -f "$tmp" "$tmp.zip"
+		echo '{"ok":false,"error":"official package is empty"}'
+		exit 1
+	fi
+
+	if ! command -v unzip >/dev/null 2>&1; then
+		rm -f "$tmp" "$tmp.zip"
+		echo '{"ok":false,"error":"unzip not found"}'
+		exit 1
+	fi
+
+	rm -rf "$tmp.dir"
+	mkdir -p "$tmp.dir"
+
+	if ! unzip -oq "$tmp.zip" -d "$tmp.dir" >/dev/null 2>&1; then
+		rm -rf "$tmp.dir"
+		rm -f "$tmp.zip" "$tmp"
+		echo '{"ok":false,"error":"failed to extract official package"}'
+		exit 1
+	fi
+
+	if [ ! -f "$tmp.dir/xray" ]; then
+		rm -rf "$tmp.dir"
+		rm -f "$tmp.zip" "$tmp"
+		echo '{"ok":false,"error":"xray binary not found in official package"}'
+		exit 1
+	fi
+
+	do_replace_binary "$tmp.dir/xray" "$tag"
+	rm -rf "$tmp.dir"
+	rm -f "$tmp.zip" "$tmp"
+}
+
+rollback_version() {
+	local bin restart service
+
+	bin="$(uci_get binary_path)"
+	restart="$(uci_get restart_service)"
+	service="$(uci_get service_name)"
+
+	[ -n "$bin" ] || bin="/usr/bin/xray"
+	[ -n "$service" ] || service="xray"
+
+	if [ ! -f "${bin}.bak" ]; then
+		echo '{"ok":false,"error":"backup not found"}'
+		exit 1
+	fi
+
+	rm -f "$bin"
+	cp -f "${bin}.bak" "$bin"
+	chmod 0755 "$bin"
+
+	if [ "${restart:-0}" = "1" ] && [ -x "/etc/init.d/$service" ]; then
+		/etc/init.d/"$service" restart >/dev/null 2>&1 || true
+	fi
+
+	echo '{"ok":true,"message":"rollback complete"}'
+}
+
+case "${1:-}" in
+	versions)
+		fetch_versions_json
+	;;
+	status)
+		status_json
+	;;
+	latest)
+		latest_official_json
+	;;
+	install)
+		install_version "${2:-}"
+	;;
+	install-official)
+		install_official_latest
+	;;
+	rollback)
+		rollback_version
+	;;
+	*)
+		echo "Usage: $0 {versions|status|latest|install <version>|install-official|rollback}" >&2
+		exit 1
+	;;
+esac

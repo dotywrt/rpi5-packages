@@ -1,0 +1,12 @@
+
+config xraycustom 'main'
+	option enabled '1'
+	option binary_path '/usr/bin/xray'
+	option list_url 'https://raw.githubusercontent.com/AW1Kdev/xray/main/list.json'
+	option base_url 'https://raw.githubusercontent.com/AW1Kdev/xray/main'
+	option backup '1'
+	option restart_service '1'
+	option service_name 'xray'
+	option _selected_version 'Null'
+	option installed_version 'Null'
+

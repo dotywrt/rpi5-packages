@@ -1,0 +1,136 @@
+#!/bin/sh /etc/rc.common
+START=95
+STOP=13
+USE_PROCD=1
+
+. /usr/share/libubox/jshn.sh
+. /lib/functions.sh
+
+NFT="/usr/sbin/nft"
+NFT_DIR="/etc/nftables.d"
+NFT_FILE="$NFT_DIR/ttl64.nft"
+
+start_service() {
+    config_load 'qmodem_ttl'
+    config_get enable 'main' 'enable' '0'
+    [ "$enable" = "0" ] && return 0
+
+    set_if_ttl
+}
+
+set_if_ttl() {
+    config_get ttl4 'main' 'ttl4' '64'
+    config_get hl6 'main' 'hl6' '64'
+    config_get mode 'main' 'meta_mode' 'global'
+
+    logger -t modem_ttl "Mode: $mode | IPv4 TTL: $ttl4 | IPv6 HL: $hl6"
+
+    mkdir -p $NFT_DIR
+    rm -f $NFT_DIR/*.nft
+
+    WWAN_IFS=""
+    for i in /sys/class/net/*; do
+        IFNAME=$(basename $i)
+        case "$IFNAME" in
+            wwan*) WWAN_IFS="$WWAN_IFS $IFNAME" ;;
+        esac
+    done
+
+    case "$mode" in
+        lan)
+            cat > $NFT_FILE <<-EOF
+chain mangle_postrouting {
+    type filter hook postrouting priority mangle; policy accept;
+    iifname "br-lan" ip ttl != $ttl4 ip ttl set $ttl4 counter
+    iifname "br-lan" ip6 hoplimit != $hl6 ip6 hoplimit set $hl6 counter
+}
+EOF
+            ;;
+        wwan_only)
+            cat > $NFT_FILE <<-EOF
+chain mangle_forward {
+    type filter hook forward priority mangle; policy accept;
+EOF
+            for i in $WWAN_IFS; do
+                echo "    oifname \"$i\" ip ttl set $ttl4" >> $NFT_FILE
+                echo "    oifname \"$i\" ip6 hoplimit set $hl6" >> $NFT_FILE
+            done
+            echo "}" >> $NFT_FILE
+            ;;
+
+         global2)
+            cat > $NFT_FILE <<-EOF
+chain mangle_prerouting_ttl64 {
+  type filter hook prerouting priority 300; policy accept;
+  counter ip ttl set $ttl4
+}
+
+chain mangle_postrouting_ttl64 {
+  type filter hook postrouting priority 300; policy accept;
+  counter ip ttl set $ttl4
+}
+
+chain mangle_prerouting_hoplimit64 {
+  type filter hook prerouting priority 300; policy accept;
+  counter ip6 hoplimit set $hl6
+}
+
+chain mangle_postrouting_hoplimit64 {
+  type filter hook postrouting priority 300; policy accept;
+  counter ip6 hoplimit set $hl6
+}
+
+EOF
+            ;;
+        *)
+            cat > $NFT_FILE <<-EOF
+chain mangle_prerouting {
+    type filter hook prerouting priority mangle; policy accept;
+    ip ttl != $ttl4 ip ttl set $ttl4 counter
+    ip6 hoplimit != $hl6 ip6 hoplimit set $hl6 counter
+}
+
+chain mangle_postrouting {
+    type filter hook postrouting priority mangle; policy accept;
+    ip ttl != $ttl4 ip ttl set $ttl4 counter
+    ip6 hoplimit != $hl6 ip6 hoplimit set $hl6 counter
+}
+
+chain mangle_forward {
+    type filter hook forward priority mangle; policy accept;
+    ip ttl != $ttl4 ip ttl set $ttl4 counter
+    ip6 hoplimit != $hl6 ip6 hoplimit set $hl6 counter
+}
+
+EOF
+            ;;
+    esac
+
+    $NFT -f $NFT_FILE
+    /etc/init.d/firewall restart
+
+    [ -d /sys/kernel/debug/ecm/ ] && /etc/init.d/qca-nss-ecm start
+    [ -d /sys/module/shortcut_fe_cm ] && rmmod shortcut_fe_cm 2>/dev/null
+    [ -d /sys/module/fast_classifier ] && rmmod fast_classifier 2>/dev/null
+}
+
+stop_service(){
+    logger -t modem_ttl "Remove TTL / HopLimit nft rules"
+    local kernel_version=$(uname -r)
+    rm -f /etc/nftables.d/*.nft
+    [ -f /etc/init.d/qca-nss-ecm ] && /etc/init.d/qca-nss-ecm start
+    [ -e "/lib/modules/$kernel_version/shortcut-fe-cm.ko" ] && modprobe shortcut-fe-cm
+    [ -e "/lib/modules/$kernel_version/fast-classifier.ko" ] && modprobe fast-classifier
+    /etc/init.d/firewall restart
+}
+
+service_triggers()
+{
+    procd_add_reload_trigger "qmodem_ttl"
+}
+
+reload_service()
+{
+    stop
+    start
+}

@@ -1,0 +1,1012 @@
+<%+header%>
+
+<div class="px-page">
+	<h2>Modem Information</h2>
+
+	<div class="px-panel">
+		<div class="px-panel-title">General</div>
+
+		<div class="px-grid px-grid-3 px-general-grid">
+			<div class="px-stat">
+				<div class="px-label">MODEM</div>
+				<div class="px-value" id="modem">Loading...</div>
+			</div>
+
+			<div class="px-stat">
+				<div class="px-label">IMEI</div>
+				<div class="px-value" id="imei">Loading...</div>
+			</div>
+
+			<div class="px-stat">
+				<div class="px-label">TEMPERATURE</div>
+				<div class="px-value" id="temperature">Loading...</div>
+			</div>
+
+			<div class="px-stat">
+				<div class="px-label">ISP</div>
+				<div class="px-value" id="isp">Loading...</div>
+			</div>
+
+			<div class="px-stat">
+				<div class="px-label">PROTOCOL</div>
+				<div class="px-value" id="protocol">Loading...</div>
+			</div>
+
+			<div class="px-stat">
+				<div class="px-label">FIRMWARE VERSION</div>
+				<div class="px-value" id="revision">Loading...</div>
+			</div>
+		</div>
+
+		<div class="px-wide-card">
+			<div class="px-label">COMM PORT</div>
+			<form method="POST" action="<%=luci.dispatcher.build_url('admin/modem/modeminfo/save_port')%>" class="px-action-form">
+				<div class="px-input-wrap">
+					<select name="commport" id="commport-select"></select>
+				</div>
+				<button type="submit" class="cbi-button cbi-button-apply px-btn px-btn-primary">Save</button>
+			</form>
+		</div>
+	</div>
+
+	<div class="px-panel">
+		<div class="px-panel-title">Signal</div>
+
+		<div class="px-grid px-grid-2 px-signal-top-grid">
+			<div class="px-stat">
+				<div class="px-label">NETWORK</div>
+				<div class="px-value" id="network">Loading...</div>
+			</div>
+
+			<div class="px-stat">
+				<div class="px-label">CSQ</div>
+				<div class="px-value" id="csq">Loading...</div>
+			</div>
+		</div>
+
+		<div class="px-metric-list">
+			<div class="px-metric-row" id="row-signal-strength">
+				<div id="signal-progress" class="px-progress">
+					<div class="progress-bar-inner"></div>
+					<div id="signal-progress-label" class="progress-inline-label">SIGNAL</div>
+					<div id="signal-progress-value" class="progress-value">Loading...</div>
+				</div>
+			</div>
+
+			<div class="px-metric-row" id="row-rssi">
+				<div id="rssi-progress" class="px-progress">
+					<div class="progress-bar-inner"></div>
+					<div id="rssi-progress-label" class="progress-inline-label">RSSI</div>
+					<div id="rssi-progress-value" class="progress-value">Loading...</div>
+				</div>
+			</div>
+
+			<div class="px-metric-row lte-group" id="row-lte-rsrq">
+				<div id="lte-rsrq-progress" class="px-progress">
+					<div class="progress-bar-inner"></div>
+					<div id="lte-rsrq-progress-label" class="progress-inline-label">LTE RSRQ</div>
+					<div id="lte-rsrq-progress-value" class="progress-value">Loading...</div>
+				</div>
+			</div>
+
+			<div class="px-metric-row lte-group" id="row-lte-rsrp">
+				<div id="lte-rsrp-progress" class="px-progress">
+					<div class="progress-bar-inner"></div>
+					<div id="lte-rsrp-progress-label" class="progress-inline-label">LTE RSRP</div>
+					<div id="lte-rsrp-progress-value" class="progress-value">Loading...</div>
+				</div>
+			</div>
+
+			<div class="px-metric-row lte-group" id="row-lte-sinr">
+				<div id="lte-sinr-progress" class="px-progress">
+					<div class="progress-bar-inner"></div>
+					<div id="lte-sinr-progress-label" class="progress-inline-label">LTE SINR</div>
+					<div id="lte-sinr-progress-value" class="progress-value">Loading...</div>
+				</div>
+			</div>
+
+			<div class="px-metric-row nr5g-nsa-group" id="row-nr5g-nsa-rsrq">
+				<div id="nr5g-nsa-rsrq-progress" class="px-progress">
+					<div class="progress-bar-inner"></div>
+					<div id="nr5g-nsa-rsrq-progress-label" class="progress-inline-label">NR5G-NSA RSRQ</div>
+					<div id="nr5g-nsa-rsrq-progress-value" class="progress-value">Loading...</div>
+				</div>
+			</div>
+
+			<div class="px-metric-row nr5g-nsa-group" id="row-nr5g-nsa-rsrp">
+				<div id="nr5g-nsa-rsrp-progress" class="px-progress">
+					<div class="progress-bar-inner"></div>
+					<div id="nr5g-nsa-rsrp-progress-label" class="progress-inline-label">NR5G-NSA RSRP</div>
+					<div id="nr5g-nsa-rsrp-progress-value" class="progress-value">Loading...</div>
+				</div>
+			</div>
+
+			<div class="px-metric-row nr5g-nsa-group" id="row-nr5g-nsa-sinr">
+				<div id="nr5g-nsa-sinr-progress" class="px-progress">
+					<div class="progress-bar-inner"></div>
+					<div id="nr5g-nsa-sinr-progress-label" class="progress-inline-label">NR5G-NSA SINR</div>
+					<div id="nr5g-nsa-sinr-progress-value" class="progress-value">Loading...</div>
+				</div>
+			</div>
+
+			<div class="px-metric-row nr5g-sa-group" id="row-nr5g-sa-rsrq">
+				<div id="nr5g-sa-rsrq-progress" class="px-progress">
+					<div class="progress-bar-inner"></div>
+					<div id="nr5g-sa-rsrq-progress-label" class="progress-inline-label">NR5G-SA RSRQ</div>
+					<div id="nr5g-sa-rsrq-progress-value" class="progress-value">Loading...</div>
+				</div>
+			</div>
+
+			<div class="px-metric-row nr5g-sa-group" id="row-nr5g-sa-rsrp">
+				<div id="nr5g-sa-rsrp-progress" class="px-progress">
+					<div class="progress-bar-inner"></div>
+					<div id="nr5g-sa-rsrp-progress-label" class="progress-inline-label">NR5G-SA RSRP</div>
+					<div id="nr5g-sa-rsrp-progress-value" class="progress-value">Loading...</div>
+				</div>
+			</div>
+
+			<div class="px-metric-row nr5g-sa-group" id="row-nr5g-sa-sinr">
+				<div id="nr5g-sa-sinr-progress" class="px-progress">
+					<div class="progress-bar-inner"></div>
+					<div id="nr5g-sa-sinr-progress-label" class="progress-inline-label">NR5G-SA SINR</div>
+					<div id="nr5g-sa-sinr-progress-value" class="progress-value">Loading...</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="px-panel">
+		<div class="px-panel-title">Cell</div>
+
+		<div class="px-grid px-grid-cell" id="cell-grid">
+			<div class="px-stat">
+				<div class="px-label">MCC / MNC</div>
+				<div class="px-value"><span id="mcc">Loading...</span> / <span id="mnc">Loading...</span></div>
+			</div>
+
+			<div class="px-stat">
+				<div class="px-label">CELL ID</div>
+				<div class="px-value"><span id="cellid">Loading...</span> (<span id="deccellid">Loading...</span>)</div>
+			</div>
+
+			<div class="px-stat" id="row-pcc">
+				<div class="px-label">PCC</div>
+				<div class="px-value"><span id="pcc">Loading...</span></div>
+			</div>
+
+			<div class="px-stat" id="row-scc1">
+				<div class="px-label">SCC 1</div>
+				<div class="px-value"><span id="scc1">Loading...</span></div>
+			</div>
+
+			<div class="px-stat" id="row-scc2">
+				<div class="px-label">SCC 2</div>
+				<div class="px-value"><span id="scc2">Loading...</span></div>
+			</div>
+
+			<div class="px-stat" id="row-scc3">
+				<div class="px-label">SCC 3</div>
+				<div class="px-value"><span id="scc3">Loading...</span></div>
+			</div>
+
+			<div class="px-stat" id="row-scc4">
+				<div class="px-label">SCC 4</div>
+				<div class="px-value"><span id="scc4">Loading...</span></div>
+			</div>
+		</div>
+	</div>
+
+	<div class="px-panel">
+		<div class="px-panel-title">Refresh Interval</div>
+
+		<form method="POST" action="<%=luci.dispatcher.build_url("admin/modem/modeminfo/set_refresh")%>">
+			<label class="px-form-label" for="refresh_rate">Select refresh rate</label>
+			<div class="px-action-form">
+				<div class="px-input-wrap">
+					<select name="refresh_rate" id="refresh_rate">
+						<option value="2" <%=refresh_rate == "2" and "selected" or ""%>>2 seconds</option>
+						<option value="5" <%=refresh_rate == "5" and "selected" or ""%>>5 seconds</option>
+						<option value="7" <%=refresh_rate == "7" and "selected" or ""%>>7 seconds</option>
+						<option value="10" <%=refresh_rate == "10" and "selected" or ""%>>10 seconds</option>
+						<option value="15" <%=refresh_rate == "15" and "selected" or ""%>>15 seconds</option>
+					</select>
+				</div>
+				<button type="submit" class="cbi-button cbi-button-apply px-btn px-btn-primary">Save</button>
+			</div>
+		</form>
+	</div>
+</div>
+
+<style>
+	:root {
+		--px-bg: rgba(255, 255, 255, 0.06);
+		--px-bg-soft: rgba(255, 255, 255, 0.10);
+		--px-bg-strong: rgba(255, 255, 255, 0.12);
+		--px-border: rgba(255, 255, 255, 0.08);
+		--px-text: #ffffff;
+		--px-text-soft: rgba(255, 255, 255, 0.78);
+		--px-text-dim: rgba(255, 255, 255, 0.70);
+		--px-input-bg: rgba(0, 0, 0, 0.42);
+		--px-input-border: rgba(255, 255, 255, 0.08);
+		--px-input-focus: rgba(127, 127, 213, 0.45);
+		--px-progress-bg: #d4d4d8;
+		--px-progress-pill-bg: rgba(255, 255, 255, 0.92);
+		--px-shadow-soft: 0 8px 22px rgba(0, 0, 0, 0.12);
+	}
+
+	body.px-light-mode {
+		--px-bg: rgba(255, 255, 255, 0.75);
+		--px-bg-soft: #ececef;
+		--px-bg-strong: #e6e7eb;
+		--px-border: rgba(17, 24, 39, 0.08);
+		--px-text: #1f2937;
+		--px-text-soft: rgba(31, 41, 55, 0.78);
+		--px-text-dim: rgba(31, 41, 55, 0.65);
+		--px-input-bg: #ffffff;
+		--px-input-border: rgba(17, 24, 39, 0.10);
+		--px-input-focus: rgba(102, 126, 234, 0.22);
+		--px-progress-pill-bg: rgba(255, 255, 255, 0.96);
+		--px-shadow-soft: 0 6px 18px rgba(17, 24, 39, 0.05);
+	}
+
+	.px-page {
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	}
+
+	.px-panel {
+		background: var(--px-bg);
+		border-radius: 10px;
+		padding: 10px;
+		box-shadow: var(--px-shadow-soft);
+		backdrop-filter: blur(6px);
+		-webkit-backdrop-filter: blur(6px);
+	}
+
+	.px-panel-title {
+		background: var(--px-bg-soft);
+		border-radius: 6px;
+		padding: 12px 14px;
+		font-size: 16px;
+		font-weight: 700;
+		color: var(--px-text);
+		margin-bottom: 14px;
+	}
+
+	.px-grid {
+		display: grid;
+		gap: 12px;
+	}
+
+	.px-grid-3 {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+
+	.px-grid-2 {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.px-grid-cell {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.px-grid-cell > .px-stat {
+		min-width: 0;
+	}
+
+	.px-grid-cell > .px-stat.px-span-full {
+		grid-column: 1 / -1;
+	}
+
+	.px-stat,
+	.px-wide-card,
+	.px-metric-row {
+		background: var(--px-bg-strong);
+		border-radius: 6px;
+		padding: 14px 16px;
+		min-width: 0;
+	}
+
+	.px-wide-card {
+		margin-top: 12px;
+	}
+
+	.px-label {
+		font-size: 11px;
+		text-transform: uppercase;
+		letter-spacing: .06em;
+		color: var(--px-text-dim);
+		margin-bottom: 8px;
+	}
+
+	.px-value {
+		text-transform: capitalize;
+		font-size: 13px;
+		color: var(--px-text);
+		line-height: 1.5;
+		word-break: break-word;
+	}
+
+	.px-metric-list {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		margin-top: 12px;
+	}
+
+	.px-progress {
+		width: 100%;
+		height: 30px;
+		background: var(--px-progress-bg);
+		border-radius: 6px;
+		position: relative;
+		overflow: hidden;
+	}
+
+	.progress-bar-inner {
+		height: 100%;
+		width: 0%;
+		border-radius: 6px;
+		transition: width 0.3s ease;
+		position: absolute;
+		left: 0;
+		top: 0;
+		z-index: 1;
+	}
+
+	.progress-inline-label {
+		position: absolute;
+		left: 12px;
+		top: 50%;
+		transform: translateY(-50%);
+		z-index: 2;
+		font-size: 11px;
+		font-weight: 600;
+		color: #fff;
+		white-space: nowrap;
+		pointer-events: none;
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
+	}
+
+	.progress-value {
+		position: absolute;
+		right: 8px;
+		top: 50%;
+		transform: translateY(-50%);
+		z-index: 3;
+		font-size: 12px;
+		font-weight: 700;
+		color: #6b7280;
+		background: var(--px-progress-pill-bg);
+		border-radius: 999px;
+		padding: 4px 8px;
+		line-height: 1;
+		min-width: 64px;
+		text-align: center;
+		box-sizing: border-box;
+	}
+
+	.progress-red { background: linear-gradient(90deg, #ff4d4f, #ff7875); }
+	.progress-orange { background: linear-gradient(90deg, #fa8c16, #ffc069); }
+	.progress-yellow { background: linear-gradient(90deg, #fadb14, #fff566); }
+	.progress-green { background: linear-gradient(90deg, #52c41a, #237804); }
+
+	.px-form-label {
+		display: block;
+		margin-bottom: 10px;
+		color: var(--px-text);
+		font-weight: 600;
+	}
+
+	.px-action-form {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		gap: 12px;
+		align-items: center;
+	}
+
+	.px-input-wrap {
+		position: relative;
+		min-width: 0;
+	}
+
+	.px-input-wrap::after {
+		content: "";
+		position: absolute;
+		right: 14px;
+		top: 50%;
+		width: 8px;
+		height: 8px;
+		border-right: 2px solid var(--px-text-dim);
+		border-bottom: 2px solid var(--px-text-dim);
+		transform: translateY(-65%) rotate(45deg);
+		pointer-events: none;
+		opacity: 0.9;
+	}
+
+	.px-input-wrap select,
+	#refresh_rate,
+	#commport-select {
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		appearance: none;
+		width: 100%;
+		height: 44px;
+		border-radius: 6px;
+		background: var(--px-input-bg) !important;
+		color: var(--px-text) !important;
+		border: 1px solid var(--px-input-border) !important;
+		box-shadow: none !important;
+		padding: 0 42px 0 14px;
+		font-size: 13px;
+		transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+	}
+
+	body.px-light-mode .px-input-wrap select,
+	body.px-light-mode #refresh_rate,
+	body.px-light-mode #commport-select {
+		color: #111827 !important;
+	}
+
+	.px-input-wrap select:focus,
+	#refresh_rate:focus,
+	#commport-select:focus {
+		outline: none;
+		border-color: rgba(102, 126, 234, 0.45) !important;
+		box-shadow: 0 0 0 3px var(--px-input-focus) !important;
+	}
+
+	.px-btn {
+		height: 44px;
+		min-width: 96px;
+		padding: 0 18px;
+		border: 0 !important;
+		border-radius: 8px !important;
+		font-size: 13px !important;
+		font-weight: 700 !important;
+		letter-spacing: .01em;
+		box-shadow: none !important;
+		transition: transform .15s ease, opacity .15s ease, filter .15s ease;
+	}
+
+	.px-btn:hover {
+		filter: brightness(1.03);
+	}
+
+	.px-btn:active {
+		transform: translateY(1px);
+	}
+
+	.px-btn-primary {
+		background: linear-gradient(135deg, #667eea, #7f7fd5) !important;
+		color: #fff !important;
+	}
+
+	.hidden-row {
+		display: none !important;
+	}
+
+	@media screen and (max-width: 1100px) {
+		.px-grid-3 {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+	}
+
+	@media screen and (max-width: 700px) {
+		.px-general-grid,
+		.px-signal-top-grid,
+		.px-grid-cell {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+
+		.px-grid-cell > .px-stat.px-span-full {
+			grid-column: 1 / -1;
+		}
+
+		.px-grid-3:not(.px-general-grid):not(.px-grid-cell),
+		.px-grid-2:not(.px-signal-top-grid) {
+			grid-template-columns: 1fr;
+		}
+
+		.px-panel {
+			padding: 10px;
+		}
+
+		.px-stat,
+		.px-wide-card,
+		.px-metric-row {
+			padding: 12px;
+		}
+
+		.px-value {
+			font-size: 12px;
+		}
+
+		.px-progress {
+			height: 36px;
+		}
+
+		.progress-inline-label {
+			left: 10px;
+			font-size: 10px;
+		}
+
+		.progress-value {
+			font-size: 11px;
+			min-width: 58px;
+			padding: 4px 10px;
+			right: 6px;
+		}
+
+		.px-action-form {
+			grid-template-columns: 1fr;
+		}
+
+		.px-btn,
+		.px-input-wrap,
+		.px-input-wrap select,
+		#refresh_rate,
+		#commport-select {
+			width: 100%;
+		}
+	}
+</style>
+
+<script>
+function detectBodyColorMode() {
+	try {
+		const body = document.body;
+		const bg = window.getComputedStyle(body).backgroundColor || '';
+		const match = bg.match(/\d+/g);
+
+		if (!match || match.length < 3) {
+			body.classList.remove('px-light-mode');
+			return;
+		}
+
+		const r = parseInt(match[0], 10);
+		const g = parseInt(match[1], 10);
+		const b = parseInt(match[2], 10);
+		const brightness = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+
+		if (brightness >= 160)
+			body.classList.add('px-light-mode');
+		else
+			body.classList.remove('px-light-mode');
+	} catch (e) {
+		document.body.classList.remove('px-light-mode');
+	}
+}
+
+function calculatePercentage(value, min, max) {
+	return Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
+}
+
+function normalizeMetricValue(value) {
+	if (value === null || value === undefined)
+		return null;
+
+	if (typeof value === 'string') {
+		const s = value.trim().toLowerCase();
+		if (!s || s === 'no signal' || s === 'n/a' || s === '-' || s === '--')
+			return null;
+	}
+
+	const num = parseFloat(value);
+	return isNaN(num) ? null : num;
+}
+
+function setNoSignalState(progressBarInner, progressValue) {
+	progressBarInner.style.width = '0%';
+	progressBarInner.className = 'progress-bar-inner';
+	progressValue.innerText = '';
+}
+
+function getQualityText(colorClass) {
+	switch (colorClass) {
+	case 'progress-green': return 'Good';
+	case 'progress-yellow': return 'Fair';
+	case 'progress-orange': return 'Weak';
+	default: return 'Poor';
+	}
+}
+
+function getMetricVisual(metricName, value, isPercentage, min, max) {
+	let percentage = 0;
+	let colorClass = 'progress-red';
+
+	if (isPercentage) {
+		percentage = calculatePercentage(value, min, max);
+
+		if (percentage <= 25)
+			colorClass = 'progress-red';
+		else if (percentage <= 50)
+			colorClass = 'progress-orange';
+		else if (percentage <= 75)
+			colorClass = 'progress-yellow';
+		else
+			colorClass = 'progress-green';
+
+		return { percentage: percentage, colorClass: colorClass };
+	}
+
+	switch (metricName) {
+	case 'RSSI':
+		if (value >= -65) {
+			percentage = 100;
+			colorClass = 'progress-green';
+		} else if (value >= -75) {
+			percentage = 75;
+			colorClass = 'progress-yellow';
+		} else if (value >= -85) {
+			percentage = 50;
+			colorClass = 'progress-orange';
+		} else {
+			percentage = 25;
+			colorClass = 'progress-red';
+		}
+		break;
+
+	case 'LTE RSRP':
+	case 'NR5G-NSA RSRP':
+	case 'NR5G-SA RSRP':
+		if (value >= -80) {
+			percentage = 100;
+			colorClass = 'progress-green';
+		} else if (value >= -90) {
+			percentage = 75;
+			colorClass = 'progress-yellow';
+		} else if (value >= -100) {
+			percentage = 50;
+			colorClass = 'progress-orange';
+		} else {
+			percentage = 25;
+			colorClass = 'progress-red';
+		}
+		break;
+
+	case 'LTE RSRQ':
+	case 'NR5G-NSA RSRQ':
+	case 'NR5G-SA RSRQ':
+		if (value >= -10) {
+			percentage = 100;
+			colorClass = 'progress-green';
+		} else if (value >= -15) {
+			percentage = 75;
+			colorClass = 'progress-yellow';
+		} else if (value >= -20) {
+			percentage = 50;
+			colorClass = 'progress-orange';
+		} else {
+			percentage = 25;
+			colorClass = 'progress-red';
+		}
+		break;
+
+	case 'LTE SINR':
+	case 'NR5G-NSA SINR':
+	case 'NR5G-SA SINR':
+		if (value >= 20) {
+			percentage = 100;
+			colorClass = 'progress-green';
+		} else if (value >= 13) {
+			percentage = 75;
+			colorClass = 'progress-yellow';
+		} else if (value >= 0) {
+			percentage = 50;
+			colorClass = 'progress-orange';
+		} else {
+			percentage = 25;
+			colorClass = 'progress-red';
+		}
+		break;
+
+	default:
+		percentage = calculatePercentage(value, min, max);
+
+		if (percentage <= 25)
+			colorClass = 'progress-red';
+		else if (percentage <= 50)
+			colorClass = 'progress-orange';
+		else if (percentage <= 75)
+			colorClass = 'progress-yellow';
+		else
+			colorClass = 'progress-green';
+		break;
+	}
+
+	return { percentage: percentage, colorClass: colorClass };
+}
+
+function updateProgressBar(elementId, valueId, rawValue, min, max, isPercentage, labelText) {
+	const wrap = document.getElementById(elementId);
+	if (!wrap) return false;
+
+	const row = wrap.closest('.px-metric-row');
+	const progressBarInner = wrap.querySelector('.progress-bar-inner');
+	const progressValue = document.getElementById(valueId);
+	const progressLabel = wrap.querySelector('.progress-inline-label');
+
+	if (!progressBarInner || !progressValue) return false;
+
+	if (progressLabel && labelText)
+		progressLabel.innerText = labelText;
+
+	const value = normalizeMetricValue(rawValue);
+
+	if (value === null) {
+		setNoSignalState(progressBarInner, progressValue);
+		if (row) row.classList.add('hidden-row');
+		return false;
+	}
+
+	if (row) row.classList.remove('hidden-row');
+
+	const visual = getMetricVisual(labelText, value, isPercentage, min, max);
+	const quality = getQualityText(visual.colorClass);
+
+	progressBarInner.style.width = visual.percentage.toFixed(1) + '%';
+	progressBarInner.className = 'progress-bar-inner ' + visual.colorClass;
+
+	if (isPercentage) {
+		progressValue.innerText = visual.percentage.toFixed(0) + '% • ' + quality;
+	} else if (labelText.indexOf('SINR') !== -1 || labelText.indexOf('RSRQ') !== -1) {
+		progressValue.innerText = value.toFixed(1) + ' dB • ' + quality;
+	} else {
+		progressValue.innerText = value.toFixed(1) + ' dBm • ' + quality;
+	}
+
+	return true;
+}
+
+function showRelevantRows(networkType) {
+	const allGroups = ['lte-group', 'nr5g-nsa-group', 'nr5g-sa-group'];
+
+	allGroups.forEach(function(groupClass) {
+		document.querySelectorAll('.' + groupClass).forEach(function(row) {
+			row.classList.add('hidden-row');
+		});
+	});
+
+	const rssiRow = document.getElementById('row-rssi');
+	if (rssiRow)
+		rssiRow.classList.add('hidden-row');
+
+	networkType = networkType || '';
+
+	if (networkType.indexOf("NR5G-SA") !== -1) {
+		document.querySelectorAll('.nr5g-sa-group').forEach(function(row) {
+			row.classList.remove('hidden-row');
+		});
+	} else if (networkType.indexOf("NR5G-NSA") !== -1) {
+		document.querySelectorAll('.lte-group, .nr5g-nsa-group').forEach(function(row) {
+			row.classList.remove('hidden-row');
+		});
+		if (rssiRow) rssiRow.classList.remove('hidden-row');
+	} else if (networkType.indexOf("LTE") !== -1) {
+		document.querySelectorAll('.lte-group').forEach(function(row) {
+			row.classList.remove('hidden-row');
+		});
+		if (rssiRow) rssiRow.classList.remove('hidden-row');
+	}
+}
+
+function getNetworkData(data) {
+	const network = data["Network"] || "";
+
+	if (network.indexOf("NR5G-SA") !== -1) {
+		return {
+			mcc: data["NR5G-SA MCC"] || "No Signal",
+			mnc: data["NR5G-SA MNC"] || "No Signal",
+			cellid: data["NR5G-SA Cell ID"] || "No Signal",
+			deccellid: data["NR5G-SA Cell ID (Dec)"] || "No Signal"
+		};
+	} else if (network.indexOf("NR5G-NSA") !== -1) {
+		return {
+			mcc: data["NR5G-NSA MCC"] || "No Signal",
+			mnc: data["NR5G-NSA MNC"] || "No Signal",
+			cellid: data["LTE Cell ID"] || "No Signal",
+			deccellid: data["LTE Cell ID (Dec)"] || "No Signal"
+		};
+	} else if (network.indexOf("LTE") !== -1) {
+		return {
+			mcc: data["LTE MCC"] || "No Signal",
+			mnc: data["LTE MNC"] || "No Signal",
+			cellid: data["LTE Cell ID"] || "No Signal",
+			deccellid: data["LTE Cell ID (Dec)"] || "No Signal"
+		};
+	}
+
+	return {
+		mcc: "No Signal",
+		mnc: "No Signal",
+		cellid: "No Signal",
+		deccellid: "No Signal"
+	};
+}
+
+function isEmptyCellValue(value) {
+	if (value === null || value === undefined)
+		return true;
+
+	const str = String(value).trim().toLowerCase();
+	return (
+		str === '' ||
+		str === '-' ||
+		str === '--' ||
+		str === 'no signal' ||
+		str === 'n/a' ||
+		str === 'unknown'
+	);
+}
+
+function toggleRow(rowId, value) {
+	const row = document.getElementById(rowId);
+	if (!row) return;
+	row.style.display = isEmptyCellValue(value) ? 'none' : '';
+}
+
+function updateCellGridMode() {
+	const grid = document.getElementById('cell-grid');
+	if (!grid) return;
+
+	const allCards = Array.prototype.slice.call(grid.children);
+
+	allCards.forEach(function(card) {
+		card.classList.remove('px-span-full');
+	});
+
+	const visibleCards = allCards.filter(function(card) {
+		return window.getComputedStyle(card).display !== 'none';
+	});
+
+	if (visibleCards.length % 2 !== 0) {
+		visibleCards[visibleCards.length - 1].classList.add('px-span-full');
+	}
+}
+
+function stableDataHash(data) {
+	try {
+		return JSON.stringify(data);
+	} catch (e) {
+		return String(Date.now());
+	}
+}
+
+let modemInfoBusy = false;
+let lastRenderedHash = '';
+
+function updateModemInfo() {
+	if (modemInfoBusy) return;
+	modemInfoBusy = true;
+
+	fetch('<%=luci.dispatcher.build_url("admin/modem/modeminfo/get_info")%>')
+		.then(function(response) { return response.json(); })
+		.then(function(data) {
+			const currentHash = stableDataHash(data);
+
+			if (currentHash === lastRenderedHash) {
+				return;
+			}
+
+			lastRenderedHash = currentHash;
+
+			const networkInfo = getNetworkData(data);
+			const network = data["Network"] || "No Signal";
+
+			document.getElementById('modem').innerText = data["Modem"] || "N/A";
+			document.getElementById('imei').innerText = data["IMEI"] || "N/A";
+			document.getElementById('isp').innerText = data["ISP"] || "N/A";
+			document.getElementById('revision').innerText = data["Revision"] || "N/A";
+			document.getElementById('protocol').innerText = data["Protocol"] || "N/A";
+			document.getElementById('temperature').innerText = data["Temperature"] || "N/A";
+			document.getElementById('network').innerText = network;
+			document.getElementById('csq').innerText = data["CSQ"] || "No Signal";
+			document.getElementById('mcc').innerText = networkInfo.mcc;
+			document.getElementById('mnc').innerText = networkInfo.mnc;
+			document.getElementById('cellid').innerText = networkInfo.cellid;
+			document.getElementById('deccellid').innerText = networkInfo.deccellid;
+
+			const pcc = data["PCC"] || "-";
+			const scc1 = data["SCC1"] || "-";
+			const scc2 = data["SCC2"] || "-";
+			const scc3 = data["SCC3"] || "-";
+			const scc4 = data["SCC4"] || "-";
+
+			document.getElementById('pcc').innerText = pcc;
+			document.getElementById('scc1').innerText = scc1;
+			document.getElementById('scc2').innerText = scc2;
+			document.getElementById('scc3').innerText = scc3;
+			document.getElementById('scc4').innerText = scc4;
+
+			toggleRow('row-pcc', pcc);
+			toggleRow('row-scc1', scc1);
+			toggleRow('row-scc2', scc2);
+			toggleRow('row-scc3', scc3);
+			toggleRow('row-scc4', scc4);
+
+			showRelevantRows(network);
+
+			updateProgressBar('signal-progress', 'signal-progress-value', data["Signal Strength"], 0, 99, true, 'Signal Strength');
+			updateProgressBar('rssi-progress', 'rssi-progress-value', data["RSSI"], -110, -50, false, 'RSSI');
+			updateProgressBar('lte-rsrq-progress', 'lte-rsrq-progress-value', data["LTE RSRQ"], -20, 3, false, 'LTE RSRQ');
+			updateProgressBar('lte-rsrp-progress', 'lte-rsrp-progress-value', data["LTE RSRP"], -140, -44, false, 'LTE RSRP');
+			updateProgressBar('lte-sinr-progress', 'lte-sinr-progress-value', data["LTE SINR"], -20, 30, false, 'LTE SINR');
+			updateProgressBar('nr5g-nsa-rsrq-progress', 'nr5g-nsa-rsrq-progress-value', data["NR5G-NSA RSRQ"], -20, 3, false, 'NR5G-NSA RSRQ');
+			updateProgressBar('nr5g-nsa-rsrp-progress', 'nr5g-nsa-rsrp-progress-value', data["NR5G-NSA RSRP"], -140, -44, false, 'NR5G-NSA RSRP');
+			updateProgressBar('nr5g-nsa-sinr-progress', 'nr5g-nsa-sinr-progress-value', data["NR5G-NSA SINR"], -20, 30, false, 'NR5G-NSA SINR');
+			updateProgressBar('nr5g-sa-rsrq-progress', 'nr5g-sa-rsrq-progress-value', data["NR5G-SA RSRQ"], -20, 3, false, 'NR5G-SA RSRQ');
+			updateProgressBar('nr5g-sa-rsrp-progress', 'nr5g-sa-rsrp-progress-value', data["NR5G-SA RSRP"], -140, -44, false, 'NR5G-SA RSRP');
+			updateProgressBar('nr5g-sa-sinr-progress', 'nr5g-sa-sinr-progress-value', data["NR5G-SA SINR"], -20, 30, false, 'NR5G-SA SINR');
+
+			updateCellGridMode();
+		})
+		.catch(function(error) {
+			console.error('Error fetching modem info:', error);
+			lastRenderedHash = '';
+
+			updateProgressBar('signal-progress', 'signal-progress-value', null, 0, 99, true, 'Signal Strength');
+			updateProgressBar('rssi-progress', 'rssi-progress-value', null, -110, -50, false, 'RSSI');
+			updateProgressBar('lte-rsrq-progress', 'lte-rsrq-progress-value', null, -20, 3, false, 'LTE RSRQ');
+			updateProgressBar('lte-rsrp-progress', 'lte-rsrp-progress-value', null, -140, -44, false, 'LTE RSRP');
+			updateProgressBar('lte-sinr-progress', 'lte-sinr-progress-value', null, -20, 30, false, 'LTE SINR');
+			updateProgressBar('nr5g-nsa-rsrq-progress', 'nr5g-nsa-rsrq-progress-value', null, -20, 3, false, 'NR5G-NSA RSRQ');
+			updateProgressBar('nr5g-nsa-rsrp-progress', 'nr5g-nsa-rsrp-progress-value', null, -140, -44, false, 'NR5G-NSA RSRP');
+			updateProgressBar('nr5g-nsa-sinr-progress', 'nr5g-nsa-sinr-progress-value', null, -20, 30, false, 'NR5G-NSA SINR');
+			updateProgressBar('nr5g-sa-rsrq-progress', 'nr5g-sa-rsrq-progress-value', null, -20, 3, false, 'NR5G-SA RSRQ');
+			updateProgressBar('nr5g-sa-rsrp-progress', 'nr5g-sa-rsrp-progress-value', null, -140, -44, false, 'NR5G-SA RSRP');
+			updateProgressBar('nr5g-sa-sinr-progress', 'nr5g-sa-sinr-progress-value', null, -20, 30, false, 'NR5G-SA SINR');
+
+			toggleRow('row-pcc', null);
+			toggleRow('row-scc1', null);
+			toggleRow('row-scc2', null);
+			toggleRow('row-scc3', null);
+			toggleRow('row-scc4', null);
+			updateCellGridMode();
+		})
+		.finally(function() {
+			modemInfoBusy = false;
+		});
+}
+
+function fetchCommPorts() {
+	fetch('<%=luci.dispatcher.build_url("admin/modem/modeminfo/get_ports_info")%>')
+		.then(function(response) { return response.json(); })
+		.then(function(data) {
+			const ports = data.ports || [];
+			const savedPort = "<%= saved_comm %>";
+			const commPortSelect = document.getElementById("commport-select");
+
+			commPortSelect.innerHTML = "";
+
+			ports.forEach(function(port) {
+				const option = document.createElement("option");
+				option.value = port;
+				option.text = port;
+
+				if (port === savedPort)
+					option.selected = true;
+
+				commPortSelect.appendChild(option);
+			});
+		})
+		.catch(function(error) {
+			console.error('Error fetching comm ports:', error);
+		});
+}
+
+let refresh_rate = <%=refresh_rate%> * 1000;
+
+window.onload = function() {
+	detectBodyColorMode();
+	fetchCommPorts();
+	updateModemInfo();
+	updateCellGridMode();
+	window.addEventListener('resize', updateCellGridMode);
+	setInterval(updateModemInfo, refresh_rate);
+};
+</script>
+
+<%+footer%>
